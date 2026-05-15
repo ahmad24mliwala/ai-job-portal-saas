@@ -1,0 +1,28 @@
+# dependencies
+node_modules
+
+# nextjs
+.next
+
+# production
+dist
+build
+
+# env
+.env
+
+# logs
+logs
+*.log
+
+# turbo
+.turbo
+
+# prisma
+prisma/dev.db
+
+# OS
+.DS_Store
+
+# vscode
+.vscode
