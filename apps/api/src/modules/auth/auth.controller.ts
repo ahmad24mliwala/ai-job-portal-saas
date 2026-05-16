@@ -1,54 +1,178 @@
 import { Request, Response } from "express";
+
 import bcrypt from "bcryptjs";
 
 import prisma from "../../config/prisma";
 
-export const registerUser = async (
-  req: Request,
-  res: Response
-) => {
+import { generateToken } from "../../utils/generateToken";
 
-  try {
+import { generateRefreshToken } from "../../utils/generateRefreshToken";
 
-    const { name, email, password } = req.body;
+import { asyncHandler } from "../../utils/asyncHandler";
 
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email
-      }
-    });
+import { ApiError } from "../../utils/apiError";
+
+export const registerUser = asyncHandler(
+  async (
+    req: Request,
+    res: Response
+  ) => {
+
+    const {
+      name,
+      email,
+      password
+    } = req.body;
+
+    const existingUser =
+      await prisma.user.findUnique({
+        where: {
+          email
+        }
+      });
 
     if (existingUser) {
 
-      return res.status(400).json({
-        success: false,
-        message: "User already exists"
-      });
+      throw new ApiError(
+        400,
+        "User already exists"
+      );
 
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword =
+      await bcrypt.hash(
+        password,
+        10
+      );
 
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword
-      }
-    });
+    const user =
+      await prisma.user.create({
+        data: {
+          name,
+          email,
+          password:
+            hashedPassword
+        }
+      });
 
     return res.status(201).json({
+
       success: true,
-      user
-    });
 
-  } catch (error) {
+      message:
+        "User registered successfully",
 
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error"
+      data: user
+
     });
 
   }
+);
 
-};
+export const loginUser = asyncHandler(
+  async (
+    req: Request,
+    res: Response
+  ) => {
+
+    const {
+      email,
+      password
+    } = req.body;
+
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          email
+        }
+      });
+
+    if (!user) {
+
+      throw new ApiError(
+        400,
+        "Invalid credentials"
+      );
+
+    }
+
+    const isPasswordValid =
+      await bcrypt.compare(
+        password,
+        user.password
+      );
+
+    if (!isPasswordValid) {
+
+      throw new ApiError(
+        400,
+        "Invalid credentials"
+      );
+
+    }
+
+    const accessToken =
+      generateToken(
+        user.id,
+        user.role
+      );
+
+    const refreshToken =
+      generateRefreshToken(
+        user.id
+      );
+
+    res.cookie(
+      "refreshToken",
+      refreshToken,
+      {
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+        maxAge:
+          30 *
+          24 *
+          60 *
+          60 *
+          1000
+      }
+    );
+
+    return res.status(200).json({
+
+      success: true,
+
+      message:
+        "Login successful",
+
+      accessToken,
+
+      data: user
+
+    });
+
+  }
+);
+
+export const logoutUser = asyncHandler(
+  async (
+    req: Request,
+    res: Response
+  ) => {
+
+    res.clearCookie(
+      "refreshToken"
+    );
+
+    return res.status(200).json({
+
+      success: true,
+
+      message:
+        "Logout successful"
+
+    });
+
+  }
+);
