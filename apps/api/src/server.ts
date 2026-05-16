@@ -1,5 +1,7 @@
 import cookieParser from "cookie-parser";
 
+import profileRoutes
+from "./modules/profile/profile.routes";
 import { errorHandler }
 from "./middleware/error.middleware";
 import authRoutes from "./modules/auth/auth.routes";
@@ -19,6 +21,11 @@ app.use(cors({
 }));
 
 app.use(helmet());
+
+app.use(
+  "/api/profile",
+  profileRoutes
+);
 
 app.use(express.json());
 

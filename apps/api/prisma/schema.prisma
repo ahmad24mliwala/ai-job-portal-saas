@@ -13,6 +13,7 @@ enum Role {
   ADMIN
 }
 
+
 model User {
 
   id          String   @id @default(cuid())
@@ -25,7 +26,15 @@ model User {
 
   role        Role @default(USER)
 
+  bio         String?
+
+  skills      String?
+
+  resume      String?
+
   createdAt   DateTime @default(now())
 
   updatedAt   DateTime @updatedAt
 }
+
+
